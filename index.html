@@ -585,19 +585,6 @@
   function saveToHerbario(){
     const note = document.getElementById('detail-note').value.trim();
 
-    if (detailMode === 'saved') {
-      // Editando una nota de un espécimen ya guardado
-      const idx = window.__savedIndex;
-      if (savedSpecies[idx]) {
-        savedSpecies[idx].note = note;
-        persistSaved();
-        renderSaved();
-      }
-      playSuccess();
-      goTo('screen-saved');
-      return;
-    }
-
     const s = currentResults[window.__openIndex ?? 0];
     if (!s) return;
     savedSpecies.unshift({
