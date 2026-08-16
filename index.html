@@ -126,7 +126,6 @@
     font-size:8px; letter-spacing:0.6px; color:var(--text-faint);
     z-index:9; pointer-events:none;
   }
-  .app-footer-credit{ position:absolute; right:16px; top:0; opacity:0.55; }
 
   @keyframes cardIn{
     from{ opacity:0; transform:translateY(10px); }
@@ -364,13 +363,6 @@
     <div id="location-indicator" style="text-align:center; font-size:9.5px; letter-spacing:1px; color:var(--text-faint); padding:8px 20px 16px; text-transform:uppercase;">
       📍 obteniendo ubicación…
     </div>
-
-    <div style="display:flex; justify-content:center; padding:0 20px 16px;">
-      <a id="android-download-btn" href="masha.apk" download="Masha.apk" style="display:inline-flex; align-items:center; gap:8px; padding:10px 18px; border-radius:999px; background:var(--bg); border:1px solid var(--gold-dim); color:var(--text); text-decoration:none; font-size:11px; letter-spacing:0.5px; font-weight:600;">
-        <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M17.6 9.48l1.84-3.18a.5.5 0 0 0-.87-.5l-1.86 3.23a10.6 10.6 0 0 0-8.42 0L6.43 5.8a.5.5 0 1 0-.87.5L7.4 9.48A9.9 9.9 0 0 0 3 17h18a9.9 9.9 0 0 0-4.4-7.52ZM9 14a1 1 0 1 1 0-2 1 1 0 0 1 0 2Zm6 0a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"/></svg>
-        <span>Descargar para Android</span>
-      </a>
-    </div>
   </div>
 
   <!-- PANTALLA 2: RESULTADOS -->
@@ -383,7 +375,7 @@
     <div class="results-hero" id="results-hero"><img id="captured-photo" /></div>
     <div class="results-header">
       <div class="eyebrow" id="results-eyebrow">Identificando</div>
-      <div class="caption" id="results-caption">Buscando coincidencias</div>
+      <div class="caption" id="results-caption">Consultando Pl@ntNet</div>
     </div>
     <div class="results-list" id="results-list"></div>
   </div>
@@ -391,12 +383,13 @@
   <!-- PANTALLA 3: DETALLE -->
   <div class="screen" id="screen-detail">
     <div class="topbar" style="position:absolute; top:0; left:0; right:0; z-index:3;">
-      <button class="back" onclick="goBackFromDetail()" style="color:var(--gold-bright);">← Atrás</button>
+      <button class="back" onclick="goTo('screen-results')" style="color:var(--gold-bright);">← Atrás</button>
       <span class="spacer"></span>
       <span class="spacer"></span>
     </div>
     <div class="detail-photo" id="detail-photo-el">
       <div class="fade"></div>
+      <div class="tag">Pl@ntNet</div>
     </div>
     <div class="detail-body">
       <div class="detail-sci" id="detail-sci">—</div>
@@ -423,7 +416,7 @@
 
       <div class="note-box">
         Hábitat, estatus (endémica/nativa) y descripción detallada se pueden agregar más adelante
-        si decides enriquecer estos datos. Por ahora la ficha muestra solo los datos disponibles de la identificación.
+        si decides enriquecer estos datos. Por ahora la ficha muestra solo lo que entrega Pl@ntNet.
       </div>
     </div>
     <div class="save-btn">
@@ -463,10 +456,7 @@
     </button>
   </div>
 
-  <div class="app-footer">
-    <span style="font-size:12px;">© 2026 Andrés Fierro Flores</span>
-    <span class="app-footer-credit" id="footer-credit">Datos: Pl@ntNet</span>
-  </div>
+  <div class="app-footer">© 2026 Andrés Fierro Flores</div>
 
 </div>
 
@@ -520,7 +510,6 @@
   let currentPhotoDataUrl = null;
   let currentLocation = null; // {lat, lng, accuracy} o null si no disponible
   let savedSpecies = []; // se carga desde localStorage al iniciar (ver loadSaved)
-  let detailMode = 'new'; // 'new' = viendo un resultado recién identificado, 'saved' = viendo/editando un espécimen ya guardado
 
   function selectOrgan(organ, btn){
     playTick();
@@ -537,11 +526,6 @@
     requestAnimationFrame(() => requestAnimationFrame(() => target.classList.add('in')));
     document.getElementById('nav-camera').classList.toggle('active', id === 'screen-camera');
     document.getElementById('nav-saved').classList.toggle('active', id === 'screen-saved');
-
-    const footerCredit = document.getElementById('footer-credit');
-    if (footerCredit) {
-      footerCredit.style.display = (id === 'screen-camera') ? '' : 'none';
-    }
   }
 
   function confidenceClass(score){
@@ -995,15 +979,13 @@
 
   function openDetail(i){
     window.__openIndex = i;
-    detailMode = 'new';
-    document.getElementById('detail-action-label').textContent = 'Guardar en mi herbario';
     const s = currentResults[i];
     document.getElementById('detail-sci').textContent = s.sci;
     document.getElementById('detail-common').textContent = s.common || 'Sin nombre común registrado';
     document.getElementById('detail-family').textContent = s.family || '—';
     document.getElementById('detail-score').textContent = `${Math.round(s.score*100)}%`;
     document.getElementById('detail-desc').textContent =
-      `Identificado a partir de la foto de ${translateOrgan(selectedOrgan)}, con ${(s.score * 100).toFixed(1)}% de coincidencia.`;
+      `Identificado por Pl@ntNet a partir de la foto de ${translateOrgan(selectedOrgan)}, con ${(s.score * 100).toFixed(1)}% de coincidencia.`;
     const photoEl = document.getElementById('detail-photo-el');
     if (currentPhotoDataUrl) photoEl.style.backgroundImage = `url(${currentPhotoDataUrl})`;
 
@@ -1022,40 +1004,6 @@
 
   function translateOrgan(o){
     return {leaf:'hoja', flower:'flor', fruit:'fruto', bark:'corteza'}[o] || o;
-  }
-
-  function openSavedDetail(i){
-    window.__savedIndex = i;
-    detailMode = 'saved';
-    const s = savedSpecies[i];
-    if (!s) return;
-    document.getElementById('detail-sci').textContent = s.sci;
-    document.getElementById('detail-common').textContent = s.common || 'Sin nombre común registrado';
-    document.getElementById('detail-family').textContent = s.family || '—';
-    document.getElementById('detail-score').textContent = `${Math.round((s.score || 0) * 100)}%`;
-    document.getElementById('detail-desc').textContent =
-      `Identificado a partir de la foto de ${translateOrgan(s.organ)}${s.capturedAt ? `, guardado el ${s.capturedAt}` : ''}.`;
-    const photoEl = document.getElementById('detail-photo-el');
-    photoEl.style.backgroundImage = s.photo ? `url(${s.photo})` : '';
-
-    const locRow = document.getElementById('detail-location-row');
-    if (s.location) {
-      locRow.style.display = 'flex';
-      const link = document.getElementById('detail-location');
-      link.textContent = `${s.location.lat.toFixed(5)}, ${s.location.lng.toFixed(5)}`;
-      link.href = mapsLink(s.location);
-    } else {
-      locRow.style.display = 'none';
-    }
-
-    document.getElementById('detail-note').value = s.note || '';
-    document.getElementById('detail-action-label').textContent = 'Guardar nota';
-
-    goTo('screen-detail');
-  }
-
-  function goBackFromDetail(){
-    goTo(detailMode === 'saved' ? 'screen-saved' : 'screen-results');
   }
 
   // ---- Geolocalización ----
@@ -1110,7 +1058,7 @@
 
   function renderSkeleton(){
     document.getElementById('results-eyebrow').textContent = 'IDENTIFICANDO';
-    document.getElementById('results-caption').textContent = 'Identificando, un momento';
+    document.getElementById('results-caption').textContent = 'Consultando Pl@ntNet, un momento';
     document.getElementById('results-list').innerHTML = [0,1,2].map(() => `
       <div class="skeleton-card">
         <div class="skel" style="width:56px;height:56px; flex-shrink:0;"></div>
@@ -1163,11 +1111,11 @@
       }
 
       document.getElementById('results-eyebrow').textContent = `${results.length} coincidencias`;
-      document.getElementById('results-caption').textContent = `Según ${translateOrgan(selectedOrgan)}`;
+      document.getElementById('results-caption').textContent = `Según ${translateOrgan(selectedOrgan)} · Pl@ntNet`;
       document.getElementById('results-list').innerHTML = results.map((s,i) => cardHTML(s, i, true)).join('');
 
     } catch (err) {
-      showResultsError(err.message || 'No se pudo conectar con el servicio de identificación.');
+      showResultsError(err.message || 'No se pudo conectar con Pl@ntNet.');
     }
   }
 
@@ -1179,6 +1127,15 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
         <span>${message}</span>
       </div>`;
+  }
+
+  // Registrar el service worker (requisito para instalación completa como PWA)
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').catch(err => {
+        console.warn('No se pudo registrar el service worker:', err);
+      });
+    });
   }
 
   window.addEventListener('DOMContentLoaded', () => {
